@@ -14,7 +14,6 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import weasyprint as wsp
 
 pd.set_option('max_columns', 12)
 
@@ -60,6 +59,8 @@ print(dplicateRowsT.shape)
 #checck for missing values
 print(test_titanic.isnull().sum())
 
+#checck for missing values
+print(test_titanic.isnull().sum())
 
 #plot graphs
 fig = plt.figure(figsize=(18,6))  
@@ -76,13 +77,9 @@ titanic.Pclass.value_counts(normalize=True).plot(kind="bar",alpha=0.5)
 
 #scatter plot of survival wrt Age
 plt.figure(2)
-plt.title("Age distribution")
+plt.title("Age distribution for survived values")
 plt.scatter(titanic.Survived, titanic.Age, alpha=0.1)
 
-#scatter plot of survival wrt Sex
-plt.figure(3)
-plt.title("Gender distribution")
-plt.scatter(titanic.Survived, titanic.Sex, alpha=0.1)
 
 #line chart of age wrt to class
 plt.figure(4)
@@ -96,6 +93,13 @@ plt.figure(5)
 plt.title("Embarked  distribution")
 titanic.Embarked.value_counts(normalize=True).plot(kind="bar",alpha=0.5)
 
+#line chart of age wrt to embarked
+plt.figure(3)
+for x in ['S','C','Q']:    ## for 3 classes
+    titanic.Age[titanic.Embarked == x].plot(kind="kde")
+plt.title("Age wrt Embarked")
+plt.legend(("S","C","Q"))
+
 plt.figure(6)
 #histogram of all variables
 titanic.hist(bins=10,figsize=(9,7),grid=False);
@@ -103,7 +107,7 @@ titanic.hist(bins=10,figsize=(9,7),grid=False);
 #hist of sex, age and survived 
 plt.figure(7)
 g = sns.FacetGrid(titanic, col="Sex", row="Survived", margin_titles=True)
-g.map(plt.hist, "Age",color="purple");
+g.map(plt.hist, "Age",color="green");
 
 #hist of survived, sex and Pclass
 plt.figure(8)
@@ -112,7 +116,7 @@ g.map(plt.hist, "Pclass",color="purple");
 
 #hist of pclass and survived fare and age
 plt.figure(9)
-g = sns.FacetGrid(titanic, hue="Survived", col="Pclass", margin_titles=True,                  palette={1:"seagreen", 0:"gray"})
+g = sns.FacetGrid(titanic, hue="Survived", col="Pclass", margin_titles=True, palette={1:"seagreen", 0:"red"})
 g=g.map(plt.scatter, "Fare", "Age",edgecolor="w").add_legend();
 
 #hist of fare, age, sex and survived
@@ -121,32 +125,28 @@ g = sns.FacetGrid(titanic, hue="Survived", col="Sex", margin_titles=True,
                 palette="Set1",hue_kws=dict(marker=["^", "v"]))
 g.map(plt.scatter, "Fare", "Age",edgecolor="w").add_legend()
 plt.subplots_adjust(top=0.8)
-g.fig.suptitle('Survival by Gender , Age and Fare');
+g.fig.suptitle('Survival by Gender and Fare');
 
-#BAR PLOT OF passengers per location
-plt.figure(11)
-titanic.Embarked.value_counts().plot(kind='bar', alpha=0.55)
-plt.title("Passengers per boarding location");
 
 plt.figure(12)
 #factor plor of survived per location
-sns.factorplot(x = 'Embarked',y="Survived", data = titanic,color="b");
+sns.factorplot(x = 'Embarked',y="Survived", data = titanic,color="g").fig.suptitle("How many survived per embarked location");
 
 plt.figure(13)
 #factorplot for survived based on Pclass
-sns.factorplot(x = 'Pclass',y="Survived", data = titanic,color="b");
+sns.factorplot(x = 'Pclass',y="Survived", data = titanic,color="gray").fig.suptitle("How many survived per Pclass");
 
 plt.figure(14)
 #factor plot for survived per Sex
-sns.factorplot(x = 'Sex',y="Survived", data = titanic,color="b");
+sns.factorplot(x = 'Sex',y="Survived", data = titanic,color="black").fig.suptitle("How many survived per Gender");
 
 plt.figure(15)
 #factorplot for survived per sibsp
-sns.factorplot(x = 'SibSp',y="Survived", data = titanic,color="b");
+sns.factorplot(x = 'SibSp',y="Survived", data = titanic,color="orange").fig.suptitle("Survival vs siblings");
 
 plt.figure(16)
 #factor plot for survived per Parch
-sns.factorplot(x = 'Parch',y="Survived", data = titanic,color="b");
+sns.factorplot(x = 'Parch',y="Survived", data = titanic,color="b").fig.suptitle("Survival vs dependents");
 
 
 #How many Men and Women Survived by Passenger Class
@@ -155,6 +155,7 @@ sns.set(font_scale=1)
 g = sns.factorplot(x="Sex", y="Survived", col="Pclass",
                     data=titanic, saturation=.5,
                     kind="bar", ci=None, aspect=.6)
+
 (g.set_axis_labels("", "Survival Rate")
     .set_xticklabels(["Men", "Women"])
     .set_titles("{col_name} {col_var}")
@@ -163,27 +164,45 @@ g = sns.factorplot(x="Sex", y="Survived", col="Pclass",
 plt.subplots_adjust(top=0.8)
 g.fig.suptitle('How many Men and Women Survived by Passenger Class');
 
+
+#How many Men and Women Survived by embark location
+plt.figure(11)
+sns.set(font_scale=1)
+g = sns.factorplot(x="Sex", y="Survived", col="Embarked",
+                    data=titanic, saturation=.5,
+                    kind="bar", ci=None, aspect=.6)
+
+(g.set_axis_labels("", "Survival Rate")
+    .set_xticklabels(["Men", "Women"])
+    .set_titles("{col_name} {col_var}")
+    .set(ylim=(0, 1))
+    .despine(left=True))  
+plt.subplots_adjust(top=0.8)
+g.fig.suptitle('How many Men and Women Survived by Embarked Location');
+
+
+
 #Survival distribution by age
 plt.figure(18)
 ax = sns.boxplot(x="Survived", y="Age", 
-                data=titanic)
+                data=titanic);
+
 plt.figure(19)
 ax = sns.stripplot(x="Survived", y="Age",
                    data=titanic, jitter=True,
                    edgecolor="gray")
 plt.title("Survival by Age",fontsize=12);
 
-#age distribution by class
-plt.figure(20)
-titanic.Age[titanic.Pclass == 1].plot(kind='kde')    
-titanic.Age[titanic.Pclass == 2].plot(kind='kde')
-titanic.Age[titanic.Pclass == 3].plot(kind='kde')
- # plots an axis lable
-plt.xlabel("Age")    
-plt.title("Age Distribution within classes")
-# sets our legend for our graph.
-plt.legend(('1st Class', '2nd Class','3rd Class'),loc='best') ;
 
+plt.figure(22)
+g = sns.factorplot(x="Age", y="Embarked",
+                    hue="Sex", row="Pclass",
+                    data=titanic[titanic.Embarked.notnull()],
+                    orient="h", size=2, aspect=3.5, 
+                   palette={'male':"purple", 'female':"blue"},
+                    kind="violin", split=True, cut=0, bw=.2);
+plt.subplots_adjust(top=0.8)
+g.fig.suptitle("Age, Gender, Embarked and class distribution");
 
 #corrrelation plot
 plt.figure(21)
@@ -196,14 +215,6 @@ plt.title('Correlation between features');
 
 #correlation of features with target variable
 titanic.corr()["Survived"]
-
-plt.figure(22)
-g = sns.factorplot(x="Age", y="Embarked",
-                    hue="Sex", row="Pclass",
-                    data=titanic[titanic.Embarked.notnull()],
-                    orient="h", size=2, aspect=3.5, 
-                   palette={'male':"purple", 'female':"blue"},
-                    kind="violin", split=True, cut=0, bw=.2);
 
 
 
