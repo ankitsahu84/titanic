@@ -103,3 +103,29 @@ Ticket      |     0
 Fare        |     1
 Cabin       |   327
 Embarked    |     0
+
+## Lets analyse the relations of variables to the dependent variable 
+
+The first basic analysis is of survived against not survived
+
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/survival_distribution.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/Variable_distribution.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/survival_by_age.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/age_distribution_for_pclass.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/survival_by_gender_embarked.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/age_distribution_survived.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/age_distribution_vs_embarked.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/age_gender_plcass_embarked.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/survival_geneder_fare.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/survival_per_class.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/embarked_distribution.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/survival_rate_by_class_geneder.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/gender_age_survived.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/survival_vs_dependents.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/gender_pclass_survived.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/survived_age_boxplot.png) 
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/pclass_distribution.png)
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/survived_vs_siblings.png)
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/survval_per_embarked.png)
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/pclass_fare_survived.png)
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Plots/correlation_plot.png) 
