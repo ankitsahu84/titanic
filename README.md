@@ -161,7 +161,8 @@ The individual variable's correaltion with survivale rate.
 
 titanic.corr()["Survived"]
 Out[2]: 
-|________|__________|
+| variable | correation |
+|-------|---------|
 PassengerId |  -0.005007
 Survived    |  1.000000
 Pclass      |  -0.338481
