@@ -6,6 +6,7 @@ Created on Sun Jun 14 12:05:47 2020
 @author: Ankit Sahu
 
 Objective: To predict the Survival of passengers on Titanic ship based on passenger attributes.
+https://www.kaggle.com/startupsci/titanic-data-science-solutions
 
 """
 
@@ -14,6 +15,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 pd.set_option('max_columns', 12)
 
@@ -36,6 +38,8 @@ print(titanic.dtypes)
 dplicateRows = titanic[titanic.duplicated()]
 print(dplicateRows.shape)
 
+del dplicateRows
+
 #checck for missing values
 print(titanic.isnull().sum())
 
@@ -56,11 +60,10 @@ print(test_titanic.dtypes)
 dplicateRowsT = test_titanic[test_titanic.duplicated()]
 print(dplicateRowsT.shape)
 
+del dplicateRowsT
 #checck for missing values
 print(test_titanic.isnull().sum())
 
-#checck for missing values
-print(test_titanic.isnull().sum())
 
 #plot graphs
 fig = plt.figure(figsize=(18,6))  
@@ -217,9 +220,195 @@ plt.title('Correlation between features');
 titanic.corr()["Survived"]
 
 
+#method to split the x and y values for data for training, cv and test
+def getTrainCVtestData(inputData, y):
+    #return 60% data as training, 20% as test and 20% as cross validation
+    
+    #shuffle the data set
+    newDf = inputData.sample(frac=1).reset_index(drop=True)
+    
+    datarow = inputData.shape[0]
+    trainSize = round(.6 * datarow)
+    cvSize = round(.2 * datarow)
+    
+    xTrain = newDf.loc[0:trainSize,newDf.columns != y]
+    yTrain = newDf.loc[0:trainSize,newDf.columns == y]
+    
+    xCV = newDf.loc[trainSize+1:trainSize+cvSize,newDf.columns != y]
+    yCV = newDf.loc[trainSize+1:trainSize+cvSize,newDf.columns == y]
+   
+    xTest = newDf.loc[trainSize+cvSize+1:datarow,newDf.columns != y]
+    yTest = newDf.loc[trainSize+cvSize+1:datarow,newDf.columns == y]
+    
+    return xTrain, yTrain, xCV, yCV, xTest, yTest
+
+
+#transform the Cabin feature to Deck, where deck is the first character of the cabin
+titanic['Cabin'] = titanic['Cabin'].str[:1]
+
+#first fill in Na values with U
+titanic['Cabin'] = titanic['Cabin'].fillna('U')
+
+#fill in embarked values with 'S' as it is the most common value
+titanic['Embarked'] = titanic['Embarked'].fillna('S')
+
+#change male/female to binary values
+titanic['Sex'] = titanic['Sex'].replace({'male': 0, 'female': 1})
+
+#Transform fare
+titanic['Fare'] = np.log(titanic['Fare'] + 1)
+
+#create a copy of data for basic model
+bTitanic = titanic
+
+#remove PassengerId column, it is not needed
+del bTitanic['PassengerId']
+
+#remove ticket column, it is not needed
+del bTitanic['Ticket']
+
+#remove Name column, it is not needed
+del bTitanic['Name']
+
+#process the categorical valyes
+titanic_cat = titanic[['Embarked','Cabin']].iloc[:]
+
+#convert categorical values of Embarked and Cabin to dummines
+bTitanicE = pd.get_dummies(titanic_cat.astype('str'))
+
+#remove the categorical columns
+del bTitanic['Cabin']
+del bTitanic['Embarked']
+
+#concatenate the new columns to the bTitanic 
+bTitanic = pd.concat([bTitanic,bTitanicE], axis=1)
+
+#remove objects that are not needed.
+del bTitanicE
+del titanic_cat
+
+print(bTitanic.isnull().sum())
+
+
+#Lets start with simplest model to predict. We will use the above method to split data
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import  accuracy_score,recall_score,precision_score,f1_score,roc_auc_score
+from sklearn.model_selection import cross_val_predict, cross_val_score, cross_validate   
+
+from sklearn.impute import KNNImputer
+
+xTrain, yTrain, xCV, yCV, xTest, yTest = getTrainCVtestData(bTitanic, 'Survived')
+
+#impute Age value
+imputer = KNNImputer(n_neighbors=3)
+
+xTrain = pd.DataFrame(data = imputer.fit_transform(xTrain),
+                                 columns = xTrain.columns,
+                                 index = xTrain.index) 
+
+xCV = pd.DataFrame(data = imputer.fit_transform(xCV),
+                                 columns = xCV.columns,
+                                 index = xCV.index) 
+
+xTest = pd.DataFrame(data = imputer.fit_transform(xTest),
+                                 columns = xTest.columns,
+                                 index = xTest.index) 
+
+titanic1 = titanic
+del titanic1['Survived']
+del titanic1['Name']
+titanic1 = pd.DataFrame(data = imputer.fit_transform(titanic1),
+                                 columns = titanic1.columns,
+                                 index = titanic1.index) 
+
+#prepare data for cross validations
+y = bTitanic['Survived']
+
+del bTitanic['Survived']
+
+X = bTitanic
+
+#impute missing values
+X = pd.DataFrame(data = imputer.fit_transform(X),
+                                 columns = X.columns,
+                                 index = X.index) 
 
 
 
+
+# Feature Scaling
+from sklearn.preprocessing import StandardScaler
+
+sc = StandardScaler()
+
+xTrain = sc.fit_transform(xTrain)
+xCV = sc.fit_transform(xCV)
+X_xTesttest = sc.transform(xTest)
+
+X = sc.transform(X)
+
+#Lets try a very basic model with logistic regression
+lm = LogisticRegression()
+lm_model = lm.fit(xTrain, yTrain.values.ravel())
+
+#lets calculate the predicted values of lm for xCV set
+y_lm_pred_cv = lm_model.predict(xCV)
+
+y_lm_prob_cv = lm_model.predict_proba(xCV)
+
+lm_cv_score = accuracy_score(yCV, y_lm_pred_cv)
+
+#lets calculate the predicted values of lm for xCV set
+y_lm_pred_test = lm_model.predict(xTest)
+
+y_lm_prob_test = lm_model.predict_proba(xTest)
+
+lm_test_score = accuracy_score(yTest, y_lm_pred_test)
+
+#cross validation and its scopre
+lm_cross_validation = cross_val_score(lm, X,y.values.ravel(), cv=10)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#lets check the how the training performed on lm
+lm_accuracy = accuracy_score(yCV,y_lm_pred)
+print(lm_accuracy)
+
+#lets check cross validation score
+lm_cv_score = cross_val_score(lm, xCV,yCV.values.ravel(), cv=10)
+print(cv_score.mean())
+
+#recall
+lm_recall_score = recall_score(yCV, y_lm_pred)
+print(lm_recall_score)
+
+#precision
+lm_precision_score = precision_score(yCV, y_lm_pred)
+print(lm_precision_score)
+
+#f1 scrore
+lm_f1_score= f1_score(yCV, y_lm_pred)
+print(lm_f1_score)
+
+#ROC score
+lm_roc_score = roc_auc_score(yCV, y_lm_prob[:,1])
+print(lm_roc_score)
 
 
 

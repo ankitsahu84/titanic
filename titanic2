@@ -1,0 +1,283 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jun 23 16:06:29 2020
+
+@author: Ankit Sahu
+https://www.kaggle.com/startupsci/titanic-data-science-solutions
+https://www.dummies.com/education/history/titanic-facts-the-layout-of-the-ship/
+"""
+
+#Import the required libraries
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+
+#change the working directory 
+os.chdir("/Users/ankit/CU/kaggle/titanic")
+
+#read data from test.csv file into a pandas dataframe
+t_train = pd.read_csv("train.csv")
+t_test = pd.read_csv("test.csv")
+
+#create a submission array which will hold the passenger ids of the values we need to hold
+submission = pd.DataFrame({"PassengerId": t_test["PassengerId"],'Survived': 0 })
+
+
+#check share of both train and test data
+print('The shape of train data: \n' + str(t_train.shape))
+print('The shape of test data: \n' + str(t_test.shape))
+
+#check for missing values
+print('Train missing values are as following: \n'+ str(t_train.isnull().sum()))
+print('Test missing values are as following: \n'+ str(t_test.isnull().sum()))
+#the train data has missing values of 177 in Age, 687 on cabin and 2 on embarked.
+#the test data has missing values of 86 in age, 327 in Cabin
+
+#check for the data type of each colum of train and test data
+print('Data type of each colum of train data: \n' + str(t_train.dtypes))
+print('Data type of each colum of test data: \n' + str(t_test.dtypes))
+
+#check description of different integer values
+print('Train data description: \n'+ str(t_train.describe()))
+
+#lets get rid of columns which are not useful
+#passengerId is just an index, Lets get rid of cabin as a large portion of its data is missing. 
+del t_train['PassengerId'], t_train['Cabin'], t_train['Ticket']
+del t_test['PassengerId'], t_test['Cabin'], t_test['Ticket']
+
+#lets engineer on the name field, it seems that we can get the salutation using the pattern where after firs ,
+#there is a space and tlatuation followed by a .
+import re
+
+#define a function to calculate the title using reges
+def calcTitle(name):
+    return re.search(", (.*?)\.",name).group(1)
+    
+#call the function for all rows 
+t_train['Title'] = t_train['Name'].apply(calcTitle)
+
+t_test['Title'] = t_test['Name'].apply(calcTitle)
+
+#delete unsed variables
+del t_train['Name'], t_test['Name']
+
+#reduce the titles to Mr, Miss, Mrs, Master, Rare
+t_train['Title'] = t_train['Title'].replace(['Lady', 'the Countess','Capt', 'Col',\
+ 	'Don', 'Dr', 'Major', 'Rev', 'Sir', 'Jonkheer', 'Dona'], 'Rare')
+    
+t_train['Title'] = t_train['Title'].replace({'Mlle': 'Miss', 'Mme': 'Mrs','Ms':'Miss'})
+
+t_test['Title'] = t_test['Title'].replace(['Lady', 'the Countess','Capt', 'Col',\
+ 	'Don', 'Dr', 'Major', 'Rev', 'Sir', 'Jonkheer', 'Dona'], 'Rare')
+    
+t_test['Title'] = t_test['Title'].replace({'Mlle': 'Miss', 'Mme': 'Mrs','Ms':'Miss'})
+
+
+#impute missing values for Embarked
+#emarked has 2 missing values in train data
+t_train['Embarked'] = t_train['Embarked'].fillna(t_train['Embarked'].mode()[0])
+
+
+#We have Embarked, Sex, Pclass and Title as categorical values. Lets convert them to dummies. 
+
+t_train_cat = t_train[['Embarked','Sex','Pclass','Title']].iloc[:]
+
+t_test_cat = t_test[['Embarked','Sex','Pclass','Title']].iloc[:]
+
+#convert categorical values to dummines
+t_train_dummies = pd.get_dummies(t_train_cat.astype('str'))
+
+t_test_dummies = pd.get_dummies(t_test_cat.astype('str'))
+
+#concatenate the new columns to the t_train and t_test respectively 
+t_train = pd.concat([t_train,t_train_dummies], axis=1)
+
+t_test = pd.concat([t_test,t_test_dummies], axis=1)
+
+#remove the columns Embarked, Sex, PClass
+del t_train['Embarked'], t_train['Sex'], t_train['Pclass'], t_train['Title']
+del t_test['Embarked'], t_test['Sex'], t_test['Pclass'] , t_test['Title']
+
+#delete unsed variables
+del t_train_cat, t_test_cat, t_train_dummies, t_test_dummies
+
+#impute for Fare in test set
+#Fare has 1 missing values in test data
+from sklearn.impute import KNNImputer
+
+#impute Fare in test set and for age in train set
+imputer = KNNImputer(n_neighbors=3)
+
+t_test = pd.DataFrame(data = imputer.fit_transform(t_test),
+                                 columns = t_test.columns,
+                                 index = t_test.index) 
+
+t_train = pd.DataFrame(data = imputer.fit_transform(t_train),
+                                 columns = t_train.columns,
+                                 index = t_train.index) 
+
+del imputer
+
+#Lets start buidling model. 
+#first split data into 80 20 for training and testing
+from sklearn.linear_model import LogisticRegression, Perceptron
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC, LinearSVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.metrics import  accuracy_score,recall_score,precision_score,f1_score,roc_auc_score
+from sklearn.model_selection import cross_val_predict, cross_val_score, cross_validate, train_test_split 
+
+y = t_train['Survived']
+t_trainCopy = t_train
+del t_trainCopy['Survived']
+X = t_trainCopy
+del t_trainCopy
+
+#before we split the data, lets scale the X data
+from sklearn.preprocessing import StandardScaler
+
+sc = StandardScaler()
+
+X = sc.fit_transform(X)
+
+#tansform the t_test values
+t_test = sc.fit_transform(t_test)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
+
+del sc
+
+#create a data frame to store the scores
+modelScores = pd.DataFrame(columns =['Name','CV','Accuracy','Recall','Precision','F1','Roc_Auc'])
+
+def performClassification(name, estimator, X, y, X_train, y_train, X_test, y_test):
+    
+    model = estimator.fit(X_train, y_train)
+    
+    y_pred = model.predict(X_test)
+    
+    cv_score = round((cross_val_score(estimator, X ,y.values.ravel(), cv=5,scoring='roc_auc').mean())*100,3)
+    
+    accuracy = round((accuracy_score(y_test, y_pred))*100,3)
+    
+    recall = round((recall_score(y_test, y_pred))*100,3)
+    
+    precision = round((precision_score(y_test, y_pred))*100,3)
+    f1 = round((f1_score(y_test, y_pred))*100,3)
+    
+    roc_auc = round((roc_auc_score(y_test, y_pred))*100,3)
+
+    returnArray = pd.array([name,cv_score,accuracy,recall,precision,f1,roc_auc])
+    
+    
+    return returnArray
+
+
+#Lets run simple logisctic model
+lm = LogisticRegression()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Logistic Regression-l2',lm,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+
+#lets run KNN
+knn = KNeighborsClassifier(n_neighbors=3)
+modelScores = modelScores.\
+    append(pd.Series(performClassification('K Nearest Neighbours',knn,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+
+#lets run SVM
+svc = SVC()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('SVM',svc,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+
+#lets run GaussianNB
+
+
+gnb = GaussianNB()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Naive Gaussian',gnb,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+
+#Lets run Decision Tree
+
+dct = DecisionTreeClassifier()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Decision Tree',dct,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+
+#Random Forrest
+
+
+rf = RandomForestClassifier()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Random Forest',rf,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+#Perceptron
+pc = Perceptron()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Perceptron',pc,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+#stochastic Gradient Decent
+
+#Linear SVC
+lsvc = LinearSVC()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Linear SVC',lsvc,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+#Artificial neural network
+
+#RVM or Relevance Vector Machine
+
+#print the model scores 
+print(modelScores.sort_values(by='CV', ascending=False))
+
+#the best classifier is Random forest
+finalModel = rf.fit(X,y)
+
+submission['Survived'] = finalModel.predict(t_test).astype(int)
+
+submission.to_csv('submission.csv', index=False)
+
+#this was 24440/26600 position with a score of .72248
+
+#lets try with the logistic model
+finalModel = lm.fit(X,y)
+
+submission['Survived'] = finalModel.predict(t_test).astype(int)
+
+submission.to_csv('submission1.csv', index=False)
+
+#this was 7674/26600 position with a score of  0.78468
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
