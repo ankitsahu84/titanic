@@ -1,20 +1,24 @@
 # Titanic: Machine Learning from Disaster
 ## Train data characterstics
-titanic = pd.read_csv("train.csv")
+t_train = pd.read_csv("train.csv")
+t_test = pd.read_csv("test.csv")
 
 ### display shape of titanic
-print(titanic.shape)
-(891, 12)
+print(t_train.shape)
+(891, 10)
+
+print(t_test.shape)
+(418, 9)
 
 ### check if there are duplicate rows, it has 0 rows implying there are no dplicates
-dplicateRows = titanic[titanic.duplicated()]
-print(dplicateRows.shape)
-(0, 12)
-
+print(t_train[t_train.duplicated()].shape)
+(0, 10)
+print(t_test[t_test.duplicated()].shape)
+(0,9)
 No duplicates found
 
 ### check data types of each column
-print(titanic.dtypes)
+print(t_train.dtypes)
 
 | feature | type |
 |-----------|----------|
@@ -32,7 +36,7 @@ Cabin    |       object
 Embarked |       object
 
 ### #check for missing values
-print(titanic.isnull().sum())
+print(t_train.isnull().sum())
 
 | feature | missing values |
 |-----------|----------|
@@ -51,17 +55,9 @@ Embarked    |     2
 
 Based on above, we can see there are lot of missing values in Age and Cabin. We need to address these in any model which we use.
 
-## Test data characterstics
-### read data from test.csv file into a pandas dataframe
-test_titanic = pd.read_csv("test.csv")
-
-### display shape of titanic
-print(test_titanic.shape)
-(418, 11)
-
 Notice that we have only 11 columns, we need to predict the survived column of this data set
 ### check data types of each column
-print(test_titanic.dtypes)
+print(t_test.dtypes)
 
 | feature | type |
 |-----------|----------|
@@ -79,16 +75,9 @@ Embarked |       object
 
 No anamaly dfound in data types of columns in train and test data
 
-### check if there are duplicate rows, it has 0 rows implying there are no dplicates
-dplicateRowsT = test_titanic[test_titanic.duplicated()]
-print(dplicateRowsT.shape)
-(0, 11)
-
-No duplicates found
-
 #checck for missing values
 
-print(test_titanic.isnull().sum())
+print(t_test.isnull().sum())
 
 | feature | missing values |
 |-----------|----------|
@@ -159,7 +148,8 @@ The correlation plot of all variables.
 
 The individual variable's correaltion with survivale rate.
 
-titanic.corr()["Survived"]
+t_train.corr()["Survived"]
+
 Out[2]: 
 | variable | correation |
 |-------|---------|
