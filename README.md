@@ -1,23 +1,31 @@
 # Titanic: Machine Learning from Disaster
 ## Train data characterstics
 t_train = pd.read_csv("train.csv")
+
 t_test = pd.read_csv("test.csv")
 
 ### display shape of titanic
 print(t_train.shape)
+
 (891, 10)
 
 print(t_test.shape)
+
 (418, 9)
 
 ### check if there are duplicate rows, it has 0 rows implying there are no dplicates
 print(t_train[t_train.duplicated()].shape)
+
 (0, 10)
+
 print(t_test[t_test.duplicated()].shape)
+
 (0,9)
+
 No duplicates found
 
 ### check data types of each column
+
 print(t_train.dtypes)
 
 | feature | type |
