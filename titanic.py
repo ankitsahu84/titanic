@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sun Jun 14 12:05:47 2020
+Created on Tue Jun 30 15:02:50 2020
 
 @author: Ankit Sahu
 
-Objective: To predict the Survival of passengers on Titanic ship based on passenger attributes.
-https://www.kaggle.com/startupsci/titanic-data-science-solutions
-
 """
-
 #Import the required libraries
 import os
 import pandas as pd
@@ -17,52 +13,42 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-pd.set_option('max_columns', 12)
 
 #change the working directory 
 os.chdir("/Users/ankit/CU/kaggle/titanic")
 
 #read data from test.csv file into a pandas dataframe
-titanic = pd.read_csv("train.csv")
+t_train = pd.read_csv("train.csv")
+t_test = pd.read_csv("test.csv")
 
+#create a submission array which will hold the passenger ids of the values we need to hold
+submission = pd.DataFrame({"PassengerId": t_test["PassengerId"],'Survived': 0 })
+
+#Lets delete the the non relevant columns
+del t_train['PassengerId'], t_train['Ticket']
+del t_test['PassengerId'], t_test['Ticket']
+
+#LETS Perform some EDA
 #display shape of titanic
-print(titanic.shape)
+print(t_train.shape)
+print(t_test.shape)
 
 #display 5 records
-print(titanic.head(5))
+print(t_train.head(5))
+print(t_test.head(5))
 
 #check data types of each column
-print(titanic.dtypes)
+print(t_train.dtypes)
+print(t_test.dtypes)
 
 #check if there are duplicate rows, it has 0 rows implying there are no dplicates
-dplicateRows = titanic[titanic.duplicated()]
-print(dplicateRows.shape)
-
-del dplicateRows
+print(t_train[t_train.duplicated()].shape)
+print(t_test[t_test.duplicated()].shape)
 
 #checck for missing values
-print(titanic.isnull().sum())
-
-#now check the test data for similar things
-#read data from test.csv file into a pandas dataframe
-test_titanic = pd.read_csv("test.csv")
-
-#display shape of titanic
-print(test_titanic.shape)
-
-#display 5 records
-print(test_titanic.head(5))
-
-#check data types of each column
-print(test_titanic.dtypes)
-
-#check if there are duplicate rows, it has 0 rows implying there are no dplicates
-dplicateRowsT = test_titanic[test_titanic.duplicated()]
-print(dplicateRowsT.shape)
-
-del dplicateRowsT
+print(t_train.isnull().sum())
 #checck for missing values
-print(test_titanic.isnull().sum())
+print(t_test.isnull().sum())
 
 
 #plot graphs
@@ -71,60 +57,60 @@ fig = plt.figure(figsize=(18,6))
 #normalized % of survival rate
 plt.figure(0)
 plt.title("Survival distribution")
-titanic.Survived.value_counts(normalize=True).plot(kind="bar",alpha=0.5)
+t_train.Survived.value_counts(normalize=True).plot(kind="bar",alpha=0.5)
 
 #normalized plot of survival 
 plt.figure(1)
 plt.title("Passenger Class distribution")
-titanic.Pclass.value_counts(normalize=True).plot(kind="bar",alpha=0.5)
+t_train.Pclass.value_counts(normalize=True).plot(kind="bar",alpha=0.5)
 
 #scatter plot of survival wrt Age
 plt.figure(2)
 plt.title("Age distribution for survived values")
-plt.scatter(titanic.Survived, titanic.Age, alpha=0.1)
+plt.scatter(t_train.Survived, t_train.Age, alpha=0.1)
 
 
 #line chart of age wrt to class
 plt.figure(4)
 for x in [1,2,3]:    ## for 3 classes
-    titanic.Age[titanic.Pclass == x].plot(kind="kde")
+    t_train.Age[t_train.Pclass == x].plot(kind="kde")
 plt.title("Age wrt Pclass")
 plt.legend(("1st","2nd","3rd"))
 
 #normalized plot of Embarked 
 plt.figure(5)
 plt.title("Embarked  distribution")
-titanic.Embarked.value_counts(normalize=True).plot(kind="bar",alpha=0.5)
+t_train.Embarked.value_counts(normalize=True).plot(kind="bar",alpha=0.5)
 
 #line chart of age wrt to embarked
 plt.figure(3)
 for x in ['S','C','Q']:    ## for 3 classes
-    titanic.Age[titanic.Embarked == x].plot(kind="kde")
+    t_train.Age[t_train.Embarked == x].plot(kind="kde")
 plt.title("Age wrt Embarked")
 plt.legend(("S","C","Q"))
 
 plt.figure(6)
 #histogram of all variables
-titanic.hist(bins=10,figsize=(9,7),grid=False);
+t_train.hist(bins=10,figsize=(9,7),grid=False);
 
 #hist of sex, age and survived 
 plt.figure(7)
-g = sns.FacetGrid(titanic, col="Sex", row="Survived", margin_titles=True)
+g = sns.FacetGrid(t_train, col="Sex", row="Survived", margin_titles=True)
 g.map(plt.hist, "Age",color="green");
 
 #hist of survived, sex and Pclass
 plt.figure(8)
-g = sns.FacetGrid(titanic, col="Sex", row="Survived", margin_titles=True)
+g = sns.FacetGrid(t_train, col="Sex", row="Survived", margin_titles=True)
 g.map(plt.hist, "Pclass",color="purple");
 
 #hist of pclass and survived fare and age
 plt.figure(9)
-g = sns.FacetGrid(titanic, hue="Survived", col="Pclass", margin_titles=True, palette={1:"seagreen", 0:"red"})
+g = sns.FacetGrid(t_train, hue="Survived", col="Pclass", margin_titles=True, palette={1:"seagreen", 0:"red"})
 g=g.map(plt.scatter, "Fare", "Age",edgecolor="w").add_legend();
 
 #hist of fare, age, sex and survived
 plt.figure(10)
-g = sns.FacetGrid(titanic, hue="Survived", col="Sex", margin_titles=True,
+g = sns.FacetGrid(t_train, hue="Survived", col="Sex", margin_titles=True,
                 palette="Set1",hue_kws=dict(marker=["^", "v"]))
 g.map(plt.scatter, "Fare", "Age",edgecolor="w").add_legend()
 plt.subplots_adjust(top=0.8)
@@ -133,30 +119,30 @@ g.fig.suptitle('Survival by Gender and Fare');
 
 plt.figure(12)
 #factor plor of survived per location
-sns.factorplot(x = 'Embarked',y="Survived", data = titanic,color="g").fig.suptitle("How many survived per embarked location");
+sns.factorplot(x = 'Embarked',y="Survived", data = t_train,color="g").fig.suptitle("How many survived per embarked location");
 
 plt.figure(13)
 #factorplot for survived based on Pclass
-sns.factorplot(x = 'Pclass',y="Survived", data = titanic,color="gray").fig.suptitle("How many survived per Pclass");
+sns.factorplot(x = 'Pclass',y="Survived", data = t_train,color="gray").fig.suptitle("How many survived per Pclass");
 
 plt.figure(14)
 #factor plot for survived per Sex
-sns.factorplot(x = 'Sex',y="Survived", data = titanic,color="black").fig.suptitle("How many survived per Gender");
+sns.factorplot(x = 'Sex',y="Survived", data = t_train,color="black").fig.suptitle("How many survived per Gender");
 
 plt.figure(15)
 #factorplot for survived per sibsp
-sns.factorplot(x = 'SibSp',y="Survived", data = titanic,color="orange").fig.suptitle("Survival vs siblings");
+sns.factorplot(x = 'SibSp',y="Survived", data = t_train,color="orange").fig.suptitle("Survival vs siblings");
 
 plt.figure(16)
 #factor plot for survived per Parch
-sns.factorplot(x = 'Parch',y="Survived", data = titanic,color="b").fig.suptitle("Survival vs dependents");
+sns.factorplot(x = 'Parch',y="Survived", data = t_train,color="b").fig.suptitle("Survival vs dependents");
 
 
 #How many Men and Women Survived by Passenger Class
 plt.figure(17)
 sns.set(font_scale=1)
 g = sns.factorplot(x="Sex", y="Survived", col="Pclass",
-                    data=titanic, saturation=.5,
+                    data=t_train, saturation=.5,
                     kind="bar", ci=None, aspect=.6)
 
 (g.set_axis_labels("", "Survival Rate")
@@ -172,7 +158,7 @@ g.fig.suptitle('How many Men and Women Survived by Passenger Class');
 plt.figure(11)
 sns.set(font_scale=1)
 g = sns.factorplot(x="Sex", y="Survived", col="Embarked",
-                    data=titanic, saturation=.5,
+                    data=t_train, saturation=.5,
                     kind="bar", ci=None, aspect=.6)
 
 (g.set_axis_labels("", "Survival Rate")
@@ -188,11 +174,11 @@ g.fig.suptitle('How many Men and Women Survived by Embarked Location');
 #Survival distribution by age
 plt.figure(18)
 ax = sns.boxplot(x="Survived", y="Age", 
-                data=titanic);
+                data=t_train);
 
 plt.figure(19)
 ax = sns.stripplot(x="Survived", y="Age",
-                   data=titanic, jitter=True,
+                   data=t_train, jitter=True,
                    edgecolor="gray")
 plt.title("Survival by Age",fontsize=12);
 
@@ -200,7 +186,7 @@ plt.title("Survival by Age",fontsize=12);
 plt.figure(22)
 g = sns.factorplot(x="Age", y="Embarked",
                     hue="Sex", row="Pclass",
-                    data=titanic[titanic.Embarked.notnull()],
+                    data=t_train[t_train.Embarked.notnull()],
                     orient="h", size=2, aspect=3.5, 
                    palette={'male':"purple", 'female':"blue"},
                     kind="violin", split=True, cut=0, bw=.2);
@@ -209,7 +195,7 @@ g.fig.suptitle("Age, Gender, Embarked and class distribution");
 
 #corrrelation plot
 plt.figure(21)
-corr=titanic.corr()#["Survived"]
+corr=t_train.corr()#["Survived"]
 plt.figure(figsize=(10, 10))
 
 sns.heatmap(corr, vmax=.8, linewidths=0.01,
@@ -217,205 +203,346 @@ sns.heatmap(corr, vmax=.8, linewidths=0.01,
 plt.title('Correlation between features');
 
 #correlation of features with target variable
-titanic.corr()["Survived"]
+t_train.corr()["Survived"]
 
+#EDA Ends
 
-#method to split the x and y values for data for training, cv and test
-def getTrainCVtestData(inputData, y):
-    #return 60% data as training, 20% as test and 20% as cross validation
+import re
+#define a function to calculate the title using reges
+def calcTitle(name):
+    return re.search(", (.*?)\.",name).group(1)
     
-    #shuffle the data set
-    newDf = inputData.sample(frac=1).reset_index(drop=True)
-    
-    datarow = inputData.shape[0]
-    trainSize = round(.6 * datarow)
-    cvSize = round(.2 * datarow)
-    
-    xTrain = newDf.loc[0:trainSize,newDf.columns != y]
-    yTrain = newDf.loc[0:trainSize,newDf.columns == y]
-    
-    xCV = newDf.loc[trainSize+1:trainSize+cvSize,newDf.columns != y]
-    yCV = newDf.loc[trainSize+1:trainSize+cvSize,newDf.columns == y]
-   
-    xTest = newDf.loc[trainSize+cvSize+1:datarow,newDf.columns != y]
-    yTest = newDf.loc[trainSize+cvSize+1:datarow,newDf.columns == y]
-    
-    return xTrain, yTrain, xCV, yCV, xTest, yTest
+#call the function for all rows 
+t_train['Title'] = t_train['Name'].apply(calcTitle)
 
+t_test['Title'] = t_test['Name'].apply(calcTitle)
 
-#transform the Cabin feature to Deck, where deck is the first character of the cabin
-titanic['Cabin'] = titanic['Cabin'].str[:1]
+#delete unsed variables
+del t_train['Name'], t_test['Name']
+del t_train['Cabin'], t_test['Cabin']
 
-#first fill in Na values with U
-titanic['Cabin'] = titanic['Cabin'].fillna('U')
+t_train['Embarked'] = t_train['Embarked'].fillna(t_train['Embarked'].mode()[0])    
+t_test['Fare'] = t_test['Fare'].fillna(t_test['Fare'].mode()[0]) 
 
-#fill in embarked values with 'S' as it is the most common value
-titanic['Embarked'] = titanic['Embarked'].fillna('S')
+#transofmr the categorical values of Title
+from feature_engine import categorical_encoders as ce
 
-#change male/female to binary values
-titanic['Sex'] = titanic['Sex'].replace({'male': 0, 'female': 1})
+rare_encoder = ce.RareLabelCategoricalEncoder(tol=0.04489,n_categories=3)
 
-#Transform fare
-titanic['Fare'] = np.log(titanic['Fare'] + 1)
+t_train['Title'] = rare_encoder.fit_transform(pd.DataFrame(t_train['Title']))
+t_test['Title'] = rare_encoder.fit_transform(pd.DataFrame(t_test['Title']))
 
-#create a copy of data for basic model
-bTitanic = titanic
+del rare_encoder
 
-#remove PassengerId column, it is not needed
-del bTitanic['PassengerId']
+t_train['Familysize'] = t_train['SibSp'] + t_train['Parch'] + 1
+t_test['Familysize'] = t_test['SibSp'] + t_test['Parch'] + 1
 
-#remove ticket column, it is not needed
-del bTitanic['Ticket']
+t_train['isAlone'] = np.where((t_train['Familysize'] > 1),0,t_train['Familysize'])
+t_test['isAlone'] = np.where((t_test['Familysize'] > 1),0,t_test['Familysize'])
 
-#remove Name column, it is not needed
-del bTitanic['Name']
+t_train['Sex'] = t_train['Sex'].replace({'male': 0,'female':1}) 
+t_test['Sex'] = t_test['Sex'].replace({'male': 0,'female':1})
 
-#process the categorical valyes
-titanic_cat = titanic[['Embarked','Cabin']].iloc[:]
+t_train['Embarked'] = t_train['Embarked'].replace({'S': 0,'C':1,'Q':2})    
+t_test['Embarked'] = t_test['Embarked'].replace({'S': 0,'C':1,'Q':2}) 
 
-#convert categorical values of Embarked and Cabin to dummines
-bTitanicE = pd.get_dummies(titanic_cat.astype('str'))
-
-#remove the categorical columns
-del bTitanic['Cabin']
-del bTitanic['Embarked']
-
-#concatenate the new columns to the bTitanic 
-bTitanic = pd.concat([bTitanic,bTitanicE], axis=1)
-
-#remove objects that are not needed.
-del bTitanicE
-del titanic_cat
-
-print(bTitanic.isnull().sum())
-
-
-#Lets start with simplest model to predict. We will use the above method to split data
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import  accuracy_score,recall_score,precision_score,f1_score,roc_auc_score
-from sklearn.model_selection import cross_val_predict, cross_val_score, cross_validate   
+t_train['Title'] = t_train['Title'].replace({'Mr': 0,'Miss':1,'Mrs':2,'Master':3,'Rare':4})    
+t_test['Title'] = t_test['Title'].replace({'Mr': 0,'Miss':1,'Mrs':2,'Master':3,'Rare':4})    
 
 from sklearn.impute import KNNImputer
 
-xTrain, yTrain, xCV, yCV, xTest, yTest = getTrainCVtestData(bTitanic, 'Survived')
-
-#impute Age value
+#impute Fare in test set and for age in train set
 imputer = KNNImputer(n_neighbors=3)
 
-xTrain = pd.DataFrame(data = imputer.fit_transform(xTrain),
-                                 columns = xTrain.columns,
-                                 index = xTrain.index) 
+t_train = pd.DataFrame(data = imputer.fit_transform(t_train),
+                                 columns = t_train.columns,
+                                 index = t_train.index) 
 
-xCV = pd.DataFrame(data = imputer.fit_transform(xCV),
-                                 columns = xCV.columns,
-                                 index = xCV.index) 
+t_test = pd.DataFrame(data = imputer.fit_transform(t_test),
+                                 columns = t_test.columns,
+                                 index = t_test.index) 
+del imputer
 
-xTest = pd.DataFrame(data = imputer.fit_transform(xTest),
-                                 columns = xTest.columns,
-                                 index = xTest.index) 
+#create sub grops of age and fareså
 
-titanic1 = titanic
-del titanic1['Survived']
-del titanic1['Name']
-titanic1 = pd.DataFrame(data = imputer.fit_transform(titanic1),
-                                 columns = titanic1.columns,
-                                 index = titanic1.index) 
+t_train['FareBand'] = pd.qcut(t_train['Fare'], 4, labels = [1, 2, 3, 4]).astype(int)
+t_test['FareBand'] = pd.qcut(t_test['Fare'], 4, labels = [1, 2, 3, 4]).astype(int)
 
-#prepare data for cross validations
-y = bTitanic['Survived']
+#feature selection routine
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
 
-del bTitanic['Survived']
+y = t_train['Survived']
 
-X = bTitanic
+del t_train['Survived']
+X = t_train
 
-#impute missing values
-X = pd.DataFrame(data = imputer.fit_transform(X),
-                                 columns = X.columns,
-                                 index = X.index) 
+#Univariate analysis of variables using chi square
+chival = pd.DataFrame({'Features': X.columns,'ChiVal':0,'p-Val':0})
+chival['ChiVal'] = chi2(X,y)[0]
+chival['p-Val'] = chi2(X,y)[1]
 
+print(chival.sort_values(by='ChiVal', ascending=False))
 
+del t_train['Parch'], t_train['SibSp'],t_train['Familysize'] ,t_train['Fare'] 
+del t_test['Parch'], t_test['SibSp'],t_test['Familysize'] ,t_test['Fare']
 
+#Variable multicolinearity
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+vif = pd.DataFrame({'Features': X.columns,'vif':0,})
+vif['vif'] = [variance_inflation_factor(X[X.columns].values, X.columns.get_loc(var)) for var in X.columns]
+print(vif.sort_values(by='vif', ascending=False))
 
-# Feature Scaling
+#vif is high Age and fareband
+del t_train['Age'] ,t_test['Age']
+del t_train['FareBand'] ,t_test['FareBand']
+
+#before we split the data, lets scale the X data
 from sklearn.preprocessing import StandardScaler
 
 sc = StandardScaler()
 
-xTrain = sc.fit_transform(xTrain)
-xCV = sc.fit_transform(xCV)
-X_xTesttest = sc.transform(xTest)
+X = sc.fit_transform(X)
 
-X = sc.transform(X)
+#tansform the t_test values
+t_test = sc.fit_transform(t_test)
 
-#Lets try a very basic model with logistic regression
+del sc
+
+from sklearn.linear_model import LogisticRegression, Perceptron, SGDClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+
+from sklearn.metrics import  accuracy_score,recall_score,precision_score,f1_score,roc_auc_score
+from sklearn.model_selection import cross_val_predict, cross_val_score, cross_validate, train_test_split 
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
+
+#create a data frame to store the scores
+modelScores = pd.DataFrame(columns =['Name','CV','Accuracy','Recall','Precision','F1','Roc_Auc'])
+
+def performClassification(name, estimator, X, y, X_train, y_train, X_test, y_test):
+    
+    model = estimator.fit(X_train, y_train)
+    
+    y_pred = model.predict(X_test)
+    
+    cv_score = round((cross_val_score(estimator, X ,y.values.ravel(), cv=5, scoring='roc_auc').mean())*100,3)
+    
+    accuracy = round((accuracy_score(y_test, y_pred))*100,3)
+    
+    recall = round((recall_score(y_test, y_pred))*100,3)
+    
+    precision = round((precision_score(y_test, y_pred))*100,3)
+    f1 = round((f1_score(y_test, y_pred))*100,3)
+    
+    roc_auc = round((roc_auc_score(y_test, y_pred))*100,3)
+
+    returnArray = pd.array([name,cv_score,accuracy,recall,precision,f1,roc_auc])
+    
+    
+    return returnArray
+
+
+
+#Lets run simple logisctic model
 lm = LogisticRegression()
-lm_model = lm.fit(xTrain, yTrain.values.ravel())
-
-#lets calculate the predicted values of lm for xCV set
-y_lm_pred_cv = lm_model.predict(xCV)
-
-y_lm_prob_cv = lm_model.predict_proba(xCV)
-
-lm_cv_score = accuracy_score(yCV, y_lm_pred_cv)
-
-#lets calculate the predicted values of lm for xCV set
-y_lm_pred_test = lm_model.predict(xTest)
-
-y_lm_prob_test = lm_model.predict_proba(xTest)
-
-lm_test_score = accuracy_score(yTest, y_lm_pred_test)
-
-#cross validation and its scopre
-lm_cross_validation = cross_val_score(lm, X,y.values.ravel(), cv=10)
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Logistic Regression-l2',lm,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
 
 
+#lets run KNN
+knn = KNeighborsClassifier(n_neighbors=3)
+modelScores = modelScores.\
+    append(pd.Series(performClassification('K Nearest Neighbours',knn,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+
+#lets run GaussianNB
+
+
+gnb = GaussianNB()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Naive Gaussian',gnb,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+
+#Lets run Decision Tree
+
+dct = DecisionTreeClassifier()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Decision Tree',dct,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+
+#Random Forrest
+
+
+rf = RandomForestClassifier()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Random Forest',rf,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+#Perceptron
+pc = Perceptron()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Perceptron',pc,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+#stochastic Gradient Decent
+sgd = SGDClassifier()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('SGD Classifier',sgd,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+
+#Artificial neural network
+ann = MLPClassifier()
+
+modelScores = modelScores.\
+    append(pd.Series(performClassification('ANN',ann,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+        
+#RVM or Relevance Vector Machine
+
+#print the model scores 
+print(modelScores.sort_values(by='CV', ascending=False))
+
+#0.79904
+finalModel = ann.fit(X,y)
+
+submission['Survived'] = finalModel.predict(t_test).astype(int)
+
+submission.to_csv('submission5.csv', index=False)
+
+#Variable multicolinearity
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+vif = pd.DataFrame({'Features': X.columns,'vif':0,})
+vif['vif'] = [variance_inflation_factor(X[X.columns].values, X.columns.get_loc(var)) for var in X.columns]
+print(vif.sort_values(by='vif', ascending=False))
+
+del t_train['Age']
+del t_test['Age']
+
+#before we split the data, lets scale the X data
+from sklearn.preprocessing import StandardScaler
+
+sc = StandardScaler()
+
+X = sc.fit_transform(X)
+
+#tansform the t_test values
+t_test = sc.fit_transform(t_test)
+
+del sc
+
+from sklearn.linear_model import LogisticRegression, Perceptron, SGDClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+
+from sklearn.metrics import  accuracy_score,recall_score,precision_score,f1_score,roc_auc_score
+from sklearn.model_selection import cross_val_predict, cross_val_score, cross_validate, train_test_split 
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
+
+#create a data frame to store the scores
+modelScores = pd.DataFrame(columns =['Name','CV','Accuracy','Recall','Precision','F1','Roc_Auc'])
+
+def performClassification(name, estimator, X, y, X_train, y_train, X_test, y_test):
+    
+    model = estimator.fit(X_train, y_train)
+    
+    y_pred = model.predict(X_test)
+    
+    cv_score = round((cross_val_score(estimator, X ,y.values.ravel(), cv=5, scoring='roc_auc').mean())*100,3)
+    
+    accuracy = round((accuracy_score(y_test, y_pred))*100,3)
+    
+    recall = round((recall_score(y_test, y_pred))*100,3)
+    
+    precision = round((precision_score(y_test, y_pred))*100,3)
+    f1 = round((f1_score(y_test, y_pred))*100,3)
+    
+    roc_auc = round((roc_auc_score(y_test, y_pred))*100,3)
+
+    returnArray = pd.array([name,cv_score,accuracy,recall,precision,f1,roc_auc])
+    
+    
+    return returnArray
 
 
 
+#Lets run simple logisctic model
+lm = LogisticRegression()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Logistic Regression-l2',lm,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
 
 
+#lets run KNN
+knn = KNeighborsClassifier(n_neighbors=3)
+modelScores = modelScores.\
+    append(pd.Series(performClassification('K Nearest Neighbours',knn,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
 
 
+#lets run GaussianNB
 
 
+gnb = GaussianNB()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Naive Gaussian',gnb,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
 
 
+#Lets run Decision Tree
+
+dct = DecisionTreeClassifier()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Decision Tree',dct,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
 
 
+#Random Forrest
 
 
+rf = RandomForestClassifier()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Random Forest',rf,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
 
+#Perceptron
+pc = Perceptron()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('Perceptron',pc,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
 
-#lets check the how the training performed on lm
-lm_accuracy = accuracy_score(yCV,y_lm_pred)
-print(lm_accuracy)
+#stochastic Gradient Decent
+sgd = SGDClassifier()
+modelScores = modelScores.\
+    append(pd.Series(performClassification('SGD Classifier',sgd,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
 
-#lets check cross validation score
-lm_cv_score = cross_val_score(lm, xCV,yCV.values.ravel(), cv=10)
-print(cv_score.mean())
+#Artificial neural network
+ann = MLPClassifier()
 
-#recall
-lm_recall_score = recall_score(yCV, y_lm_pred)
-print(lm_recall_score)
+modelScores = modelScores.\
+    append(pd.Series(performClassification('ANN',ann,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+        
+#RVM or Relevance Vector Machine
 
-#precision
-lm_precision_score = precision_score(yCV, y_lm_pred)
-print(lm_precision_score)
+#print the model scores 
+print(modelScores.sort_values(by='CV', ascending=False))
 
-#f1 scrore
-lm_f1_score= f1_score(yCV, y_lm_pred)
-print(lm_f1_score)
+finalModel = ann.fit(X,y)
 
-#ROC score
-lm_roc_score = roc_auc_score(yCV, y_lm_prob[:,1])
-print(lm_roc_score)
+submission['Survived'] = finalModel.predict(t_test).astype(int)
 
-
-
-
-
-
-
-
-
-
+submission.to_csv('submission.csv', index=False)
