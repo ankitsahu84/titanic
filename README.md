@@ -169,13 +169,16 @@ SibSp       | -0.035322
 Parch       |  0.081629
 Fare        |  0.257307
 
-#Some feature engineering now
+# Some feature engineering now
 
 For some variables I did re-engieer them.
+
 Name field was used to create a title field which was then converted to ordnials for following values
 
 t_train['Title'].value_counts()
+
 Out[334]: 
+
 Mr        517
 Miss      182
 Mrs       125
@@ -189,16 +192,22 @@ Fare was used to create field Fareband so that ordnial values can be used.
 #Sklean's KNN Imputer was used to impute the missing values for age, while Embarked was filled with mode in train data and Fare was filled with mode in test data.
 
 
-#Feture selection
+# Feture selection
+
 Now that we have a lot of features, we should first see which values are directly related to Survived. Chisquare method was used to get the results.
 
-#Univariate analysis of variables using chi square
+## Univariate analysis of variables using chi square
+
 chival = pd.DataFrame({'Features': X.columns,'ChiVal':0,'p-Val':0})
+
 chival['ChiVal'] = chi2(X,y)[0]
+
 chival['p-Val'] = chi2(X,y)[1]
+
 print(chival.sort_values(by='ChiVal', ascending=False))
+
 Output was :
-      Features       ChiVal         p-Val
+     | Features |      ChiVal  |       p-Val|
 5         Fare  4518.319091  0.000000e+00
 7        Title   228.035979  1.598345e-51
 1          Sex   170.348127  6.210585e-39
@@ -214,10 +223,15 @@ Output was :
 Based on the Chival and p-Val I decided to let go of Parch, SibSp and FamilySize features. Also, I deleted Fare feature as I already have Fareband
 
 Not its time for us to check multicolinearity of variables, using VIF. ANything which has VIF more than 5 will be deleted
-#Variable multicolinearity
+
+# Variable multicolinearity
+
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 vif = pd.DataFrame({'Features': X.columns,'vif':0,})
+
 vif['vif'] = [variance_inflation_factor(X[X.columns].values, X.columns.get_loc(var)) for var in X.columns]
+
 print(vif.sort_values(by='vif', ascending=False))
 
 Output:
@@ -230,9 +244,8 @@ Output:
 1       Sex  2.142192
 3  Embarked  1.359368
 
-Based on the VIF values I deleted Age and Fareband
+Based on the VIF values I deleted Age and Fareband and now the VIF is as below
 
-and not the VIF is as below
    Features       vif
 0    Pclass  3.344212
 4   isAlone  2.502779
@@ -240,36 +253,46 @@ and not the VIF is as below
 3     Title  1.986556
 2  Embarked  1.345120
 
-#Transform the data using sklearn's SatndardScalar method.
-#before we split the data, lets scale the X data
+# Transform the data using sklearn's SatndardScalar method.
+## before we split the data, lets scale the X data
+
 from sklearn.preprocessing import StandardScaler
 
 sc = StandardScaler()
 
 X = sc.fit_transform(X)
 
-#tansform the t_test values
+### tansform the t_test values
 t_test = sc.fit_transform(t_test)
 
-#Buld the models
+# Buld the models
 
 ##Post feature selection all the classifiers and scorers were imported
+
 from sklearn.linear_model import LogisticRegression, Perceptron, SGDClassifier
+
 from sklearn.neighbors import KNeighborsClassifier
+
 from sklearn.naive_bayes import GaussianNB
+
 from sklearn.tree import DecisionTreeClassifier
+
 from sklearn.ensemble import RandomForestClassifier
+
 from sklearn.neural_network import MLPClassifier
 
 from sklearn.metrics import  accuracy_score,recall_score,precision_score,f1_score,roc_auc_score
+
 from sklearn.model_selection import cross_val_predict, cross_val_score, cross_validate, train_test_split 
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
 
 #create a data frame to store the scores
+
 modelScores = pd.DataFrame(columns =['Name','CV','Accuracy','Recall','Precision','F1','Roc_Auc'])
 
 #following method was defined so that we can generate a score table for each model
+
 def performClassification(name, estimator, X, y, X_train, y_train, X_test, y_test):
     
     model = estimator.fit(X_train, y_train)
@@ -293,58 +316,71 @@ def performClassification(name, estimator, X, y, X_train, y_train, X_test, y_tes
     return returnArray
     
 ## All the models were rin and the scores were printed
-#Lets run simple logisctic model
+
+# Lets run simple logisctic model
+
 lm = LogisticRegression()
+
 modelScores = modelScores.\
     append(pd.Series(performClassification('Logistic Regression-l2',lm,X,y, X_train, y_train, X_test, y_test),\
                      index=modelScores.columns), ignore_index=True)
 
 
-#lets run KNN
+# lets run KNN
+
 knn = KNeighborsClassifier(n_neighbors=3)
+
 modelScores = modelScores.\
     append(pd.Series(performClassification('K Nearest Neighbours',knn,X,y, X_train, y_train, X_test, y_test),\
                      index=modelScores.columns), ignore_index=True)
 
 
-#lets run GaussianNB
+# lets run GaussianNB
 
 
 gnb = GaussianNB()
+
 modelScores = modelScores.\
     append(pd.Series(performClassification('Naive Gaussian',gnb,X,y, X_train, y_train, X_test, y_test),\
                      index=modelScores.columns), ignore_index=True)
 
 
-#Lets run Decision Tree
+# Lets run Decision Tree
 
 dct = DecisionTreeClassifier()
+
 modelScores = modelScores.\
     append(pd.Series(performClassification('Decision Tree',dct,X,y, X_train, y_train, X_test, y_test),\
                      index=modelScores.columns), ignore_index=True)
 
 
-#Random Forrest
+# Random Forrest
 
 
 rf = RandomForestClassifier()
+
 modelScores = modelScores.\
     append(pd.Series(performClassification('Random Forest',rf,X,y, X_train, y_train, X_test, y_test),\
                      index=modelScores.columns), ignore_index=True)
 
-#Perceptron
+# Perceptron
+
 pc = Perceptron()
+
 modelScores = modelScores.\
     append(pd.Series(performClassification('Perceptron',pc,X,y, X_train, y_train, X_test, y_test),\
                      index=modelScores.columns), ignore_index=True)
 
-#stochastic Gradient Decent
+# stochastic Gradient Decent
+
 sgd = SGDClassifier()
+
 modelScores = modelScores.\
     append(pd.Series(performClassification('SGD Classifier',sgd,X,y, X_train, y_train, X_test, y_test),\
                      index=modelScores.columns), ignore_index=True)
 
-#Artificial neural network
+# Artificial neural network
+
 ann = MLPClassifier()
 
 modelScores = modelScores.\
@@ -352,7 +388,8 @@ modelScores = modelScores.\
                      index=modelScores.columns), ignore_index=True)
                      
                      
- #print the model scores 
+# print the model scores 
+
 print(modelScores.sort_values(by='CV', ascending=False))
 
 Output:
@@ -367,6 +404,7 @@ Output:
 5              Perceptron  74.999   78.771  67.606     76.19  71.642  76.858
 
 The Ann model was selected and final calculations were done to generate the submission file
+
 finalModel = ann.fit(X,y)
 
 submission['Survived'] = finalModel.predict(t_test).astype(int)
@@ -374,10 +412,10 @@ submission['Survived'] = finalModel.predict(t_test).astype(int)
 submission.to_csv('submission.csv', index=False)
 
 
-#With this submission I stand at (top 10%) 2126 out of 23640 participant at an accuracy scoore of .79904. 
+# With this submission I stand at (top 10%) 2126 out of 23640 participant at an accuracy scoore of .79904. 
+![alt text](Screen Shot 2020-07-01 at 10.42.22 PM.png) 
 
-
-#More to explore
+# More to explore
 - Stratified split of data.
 - Data imputation based on median of the groups for age (age comes out to be insignificant)
 - Can the Cabin be used in some ways to model
