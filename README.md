@@ -413,7 +413,8 @@ submission.to_csv('submission.csv', index=False)
 
 
 # With this submission I stand at (top 10%) 2126 out of 23640 participant at an accuracy scoore of .79904. 
-![alt text](Screen Shot 2020-07-01 at 10.42.22 PM.png) 
+
+![alt text](https://github.com/ankitsahu84/titanic/blob/master/Screen%20Shot%202020-07-01%20at%2010.42.22%20PM.png) 
 
 # More to explore
 - Stratified split of data.
