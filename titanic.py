@@ -4,6 +4,7 @@
 Created on Tue Jun 30 15:02:50 2020
 
 @author: Ankit Sahu
+https://www.kaggle.com/bhatiashivam/ahoy-top-3-the-only-notebook-you-need
 
 """
 #Import the required libraries
@@ -246,6 +247,15 @@ t_test['Sex'] = t_test['Sex'].replace({'male': 0,'female':1})
 t_train['Embarked'] = t_train['Embarked'].replace({'S': 0,'C':1,'Q':2})    
 t_test['Embarked'] = t_test['Embarked'].replace({'S': 0,'C':1,'Q':2}) 
 
+titles = ['Master', 'Miss', 'Mr', 'Mrs', 'Rare']
+
+for title in titles:
+    age_to_impute1 = t_train.groupby('Title')['Age'].median()[titles.index(title)]
+    t_train.loc[(t_train['Age'].isnull()) & (t_train['Title'] == title), 'Age'] = age_to_impute1
+    
+    age_to_impute2 = t_test.groupby('Title')['Age'].median()[titles.index(title)]
+    t_test.loc[(t_test['Age'].isnull()) & (t_test['Title'] == title), 'Age'] = age_to_impute2
+    
 t_train['Title'] = t_train['Title'].replace({'Mr': 0,'Miss':1,'Mrs':2,'Master':3,'Rare':4})    
 t_test['Title'] = t_test['Title'].replace({'Mr': 0,'Miss':1,'Mrs':2,'Master':3,'Rare':4})    
 
@@ -315,9 +325,11 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
+import xgboost as xgb
 
 from sklearn.metrics import  accuracy_score,recall_score,precision_score,f1_score,roc_auc_score
-from sklearn.model_selection import cross_val_predict, cross_val_score, cross_validate, train_test_split 
+from sklearn.model_selection import cross_val_predict, cross_val_score, cross_validate, train_test_split
+from sklearn.model_selection import StratifiedKFold, GridSearchCV, learning_curve 
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
 
@@ -330,7 +342,9 @@ def performClassification(name, estimator, X, y, X_train, y_train, X_test, y_tes
     
     y_pred = model.predict(X_test)
     
-    cv_score = round((cross_val_score(estimator, X ,y.values.ravel(), cv=5, scoring='roc_auc').mean())*100,3)
+    kFold = StratifiedKFold(n_splits=8)
+    
+    cv_score = round((cross_val_score(estimator, X ,y.values.ravel(), cv=kFold, scoring='roc_auc').mean())*100,3)
     
     accuracy = round((accuracy_score(y_test, y_pred))*100,3)
     
@@ -345,8 +359,6 @@ def performClassification(name, estimator, X, y, X_train, y_train, X_test, y_tes
     
     
     return returnArray
-
-
 
 #Lets run simple logisctic model
 lm = LogisticRegression()
@@ -406,142 +418,21 @@ modelScores = modelScores.\
     append(pd.Series(performClassification('ANN',ann,X,y, X_train, y_train, X_test, y_test),\
                      index=modelScores.columns), ignore_index=True)
         
+
+#XGBoost
+        #Artificial neural network
+xgboost = xgb.XGBClassifier(objective="binary:logistic", random_state=42,n_estimators=500,learning_rate=0.05)
+modelScores = modelScores.\
+    append(pd.Series(performClassification('XGBoost',xgboost,X,y, X_train, y_train, X_test, y_test),\
+                     index=modelScores.columns), ignore_index=True)
+    
 #RVM or Relevance Vector Machine
 
 #print the model scores 
 print(modelScores.sort_values(by='CV', ascending=False))
 
 #0.79904
-finalModel = ann.fit(X,y)
-
-submission['Survived'] = finalModel.predict(t_test).astype(int)
-
-submission.to_csv('submission5.csv', index=False)
-
-#Variable multicolinearity
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-vif = pd.DataFrame({'Features': X.columns,'vif':0,})
-vif['vif'] = [variance_inflation_factor(X[X.columns].values, X.columns.get_loc(var)) for var in X.columns]
-print(vif.sort_values(by='vif', ascending=False))
-
-del t_train['Age']
-del t_test['Age']
-
-#before we split the data, lets scale the X data
-from sklearn.preprocessing import StandardScaler
-
-sc = StandardScaler()
-
-X = sc.fit_transform(X)
-
-#tansform the t_test values
-t_test = sc.fit_transform(t_test)
-
-del sc
-
-from sklearn.linear_model import LogisticRegression, Perceptron, SGDClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
-
-from sklearn.metrics import  accuracy_score,recall_score,precision_score,f1_score,roc_auc_score
-from sklearn.model_selection import cross_val_predict, cross_val_score, cross_validate, train_test_split 
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2)
-
-#create a data frame to store the scores
-modelScores = pd.DataFrame(columns =['Name','CV','Accuracy','Recall','Precision','F1','Roc_Auc'])
-
-def performClassification(name, estimator, X, y, X_train, y_train, X_test, y_test):
-    
-    model = estimator.fit(X_train, y_train)
-    
-    y_pred = model.predict(X_test)
-    
-    cv_score = round((cross_val_score(estimator, X ,y.values.ravel(), cv=5, scoring='roc_auc').mean())*100,3)
-    
-    accuracy = round((accuracy_score(y_test, y_pred))*100,3)
-    
-    recall = round((recall_score(y_test, y_pred))*100,3)
-    
-    precision = round((precision_score(y_test, y_pred))*100,3)
-    f1 = round((f1_score(y_test, y_pred))*100,3)
-    
-    roc_auc = round((roc_auc_score(y_test, y_pred))*100,3)
-
-    returnArray = pd.array([name,cv_score,accuracy,recall,precision,f1,roc_auc])
-    
-    
-    return returnArray
-
-
-
-#Lets run simple logisctic model
-lm = LogisticRegression()
-modelScores = modelScores.\
-    append(pd.Series(performClassification('Logistic Regression-l2',lm,X,y, X_train, y_train, X_test, y_test),\
-                     index=modelScores.columns), ignore_index=True)
-
-
-#lets run KNN
-knn = KNeighborsClassifier(n_neighbors=3)
-modelScores = modelScores.\
-    append(pd.Series(performClassification('K Nearest Neighbours',knn,X,y, X_train, y_train, X_test, y_test),\
-                     index=modelScores.columns), ignore_index=True)
-
-
-#lets run GaussianNB
-
-
-gnb = GaussianNB()
-modelScores = modelScores.\
-    append(pd.Series(performClassification('Naive Gaussian',gnb,X,y, X_train, y_train, X_test, y_test),\
-                     index=modelScores.columns), ignore_index=True)
-
-
-#Lets run Decision Tree
-
-dct = DecisionTreeClassifier()
-modelScores = modelScores.\
-    append(pd.Series(performClassification('Decision Tree',dct,X,y, X_train, y_train, X_test, y_test),\
-                     index=modelScores.columns), ignore_index=True)
-
-
-#Random Forrest
-
-
-rf = RandomForestClassifier()
-modelScores = modelScores.\
-    append(pd.Series(performClassification('Random Forest',rf,X,y, X_train, y_train, X_test, y_test),\
-                     index=modelScores.columns), ignore_index=True)
-
-#Perceptron
-pc = Perceptron()
-modelScores = modelScores.\
-    append(pd.Series(performClassification('Perceptron',pc,X,y, X_train, y_train, X_test, y_test),\
-                     index=modelScores.columns), ignore_index=True)
-
-#stochastic Gradient Decent
-sgd = SGDClassifier()
-modelScores = modelScores.\
-    append(pd.Series(performClassification('SGD Classifier',sgd,X,y, X_train, y_train, X_test, y_test),\
-                     index=modelScores.columns), ignore_index=True)
-
-#Artificial neural network
-ann = MLPClassifier()
-
-modelScores = modelScores.\
-    append(pd.Series(performClassification('ANN',ann,X,y, X_train, y_train, X_test, y_test),\
-                     index=modelScores.columns), ignore_index=True)
-        
-#RVM or Relevance Vector Machine
-
-#print the model scores 
-print(modelScores.sort_values(by='CV', ascending=False))
-
-finalModel = ann.fit(X,y)
+finalModel = xgboost.fit(X,y)
 
 submission['Survived'] = finalModel.predict(t_test).astype(int)
 
