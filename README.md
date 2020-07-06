@@ -7,20 +7,20 @@ t_test = pd.read_csv("test.csv")
 ### display shape of titanic
 print(t_train.shape)
 
-(891, 10)
+(891, 12)
 
 print(t_test.shape)
 
-(418, 9)
+(418, 11)
 
 ### check if there are duplicate rows, it has 0 rows implying there are no dplicates
 print(t_train[t_train.duplicated()].shape)
 
-(0, 10)
+(0, 1@)
 
 print(t_test[t_test.duplicated()].shape)
 
-(0,9)
+(0,11)
 
 No duplicates found
 
